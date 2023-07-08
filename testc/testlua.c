@@ -5,10 +5,20 @@
 
 #include <lualib.h>
 #include <lauxlib.h>
-
-
+#ifdef USE_JIT
+#include <luajit.h>
+#endif
 int api_mul(lua_State* lua)
 {
+#ifdef USE_JIT	
+	size_t len;
+	const char *stack = luaJIT_profile_dumpstack(lua, "f l\n", 30, &len);
+	char *t = (char *)malloc(len + 1);
+	memcpy(t, stack, len);
+	t[len] = '\0';
+	printf("stack[%lu]:\n%s\n", len, t);
+	free(t);
+#endif	
     lua_settop(lua, 2); // set the size of the stack to 2 and crop useless args
 
     int num = lua_tointeger(lua, 1);
@@ -42,6 +52,8 @@ void test_print_str()
 	printf("aaa = %s, bbb = %s\n", aaa, bbb.str);
 }
 
+
+lua_State *globalL;
 int main(int argc, char *argv[])
 {
 	test_print_str();
@@ -51,6 +63,7 @@ int main(int argc, char *argv[])
 		printf("create state failed!\n");
 		exit(-1);
 	}
+	globalL = L;
 	luaL_openlibs(L);
 	lua_register(L, "mul", api_mul);
 	
